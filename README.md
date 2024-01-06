@@ -113,7 +113,7 @@ The following thoughts are based on our experience:
 - Maybe, for a sequence of length L, you can try the smallest group size first [calculated by: G * (L- w_n) + w_n] , and then test whether larger group can be better.
 
 ## 5. Future Plan
-As we stated before, our current implementation 
+Our current implementation is primarily focused on helping readers easily understand the proposed method, and it aligns with the pseudocode. Its efficiency is not yet optimal. In the future, we plan to:
 
 - [ ] Reduce redundant attention computation. 
 - [ ] Useless KV-cache eviction for neighbor/normal attention.
