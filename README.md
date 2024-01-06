@@ -63,7 +63,7 @@ python example.py
 ```
 
 
-Following this, you will have the following results:
+By running the command, you will have the following results:
 
 ```bash
 -----------------------------------
