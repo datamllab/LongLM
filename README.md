@@ -1,7 +1,7 @@
 # LLM Maybe LongLM: Self-Extend LLM Context Window Without Tuning
 
 
-Offical implementation of SelfExtend of [LLM Maybe LongLM: Self-Extend LLM Context Window Without Tuning](https://arxiv.org/pdf/2401.01325.pdf). If you find our method useful, please kindly cite our paper.
+Implementation of the proposed SelfExtend in [LLM Maybe LongLM: Self-Extend LLM Context Window Without Tuning](https://arxiv.org/pdf/2401.01325.pdf). If you find our method useful, please kindly cite our paper.
 
 ```bibtex
 @misc{jin2024llm,
