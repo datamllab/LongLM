@@ -12,14 +12,14 @@ original_llama_forward = LlamaAttention.forward
 self_extend_forward = partial(LlamaSE.self_extend_forward, group_size_1=8, group_size_2=1024)
 
 
-model_path = 'meta-llama/Llama-2-7b-chat-hf'
-# model_path = 'TinyLlama/TinyLlama-1.1B-Chat-v1.0'
+# model_path = 'meta-llama/Llama-2-7b-chat-hf'
+model_path = 'TinyLlama/TinyLlama-1.1B-Chat-v1.0'
 model = AutoModelForCausalLM.from_pretrained(model_path, device_map="auto")
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model.eval()
 
 
-for line in open("passkey_examples.jsonl", "r"):
+for line in open("passkey_examples_5k.jsonl", "r"):
     example = json.loads(line)
     prompt_postfix = "What is the pass key? The pass key is "
     prompt = example["input"] + prompt_postfix

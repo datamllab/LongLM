@@ -1,8 +1,9 @@
 import torch
-import numpy as np
 import torch.nn as nn
 import math
 from typing import Optional, Tuple
+import torch.nn.functional as F
+from transformers.cache_utils import Cache
 
 
 def repeat_kv(hidden_states: torch.Tensor, n_rep: int) -> torch.Tensor:
@@ -50,7 +51,7 @@ def apply_grouped_rotary_pos_emb(q, k, cos, sin, position_ids, g_size_1=1, g_siz
 
     return q_embed, k_embed
 
-def apply_local_rotary_pos_emb(q, k, cos, sin, position_ids, g_size=1):
+def apply_neighbor_rotary_pos_emb(q, k, cos, sin, position_ids, g_size=1):
     # The first two dimensions of cos and sin are always 1, so we can `squeeze` them.
     position_ids = position_ids % g_size
 
@@ -111,29 +112,28 @@ def self_extend_forward(
         kv_seq_len += past_key_value.get_usable_length(kv_seq_len, self.layer_idx)
     cos, sin = self.rotary_emb(value_states, seq_len=kv_seq_len)
 
-
     
     if past_key_value is not None:
         cache_kwargs = {"sin": sin, "cos": cos}  # Specific to RoPE models
         key_states, value_states = past_key_value.update(key_states, value_states, self.layer_idx, cache_kwargs)
     
     query_position_ids = position_ids
-    key_position_ids = torch.arange(kv_seq_len, dtype=position_ids.dtype).to(query_position_ids.device).view(bsz, kv_seq_len) # obtain the position ids for key states.
+    key_position_ids = torch.arange(kv_seq_len, dtype=position_ids.dtype).to(query_position_ids.device).view(bsz, kv_seq_len)
 
 
-    local_query_states, _ = apply_rotary_pos_emb(scaled_query, None, cos, sin, query_position_ids) # if set to 1, it's unexpectedly different from this ...
-    _, local_key_states = apply_rotary_pos_emb(None, key_states, cos, sin, key_position_ids) # if set to 1, it's unexpectedly different from this ...
+    neighbor_query_states, _ = apply_rotary_pos_emb(query_states, None, cos, sin, query_position_ids) 
+    _, neighbor_key_states = apply_rotary_pos_emb(None, key_states, cos, sin, key_position_ids) 
     _re_group_size_2 = 0 if position_ids.max() < group_size_2 else group_size_2 # in case that, the smallest q position, g2-g2//g1 exceed the max position
-    group_query_states, _ = apply_grouped_rotary_pos_emb(scaled_query, None, cos, sin, position_ids, g_size_1=group_size_1, g_size_2=_re_group_size_2) # if set to 1, it's unexpectedly different from this ...
-    _, group_key_states = apply_grouped_rotary_pos_emb(None, key_states, cos, sin, position_ids, g_size_1=group_size_1, g_size_2=_re_group_size_2) # if set to 1, it's unexpectedly different from this ...
+    group_query_states, _ = apply_grouped_rotary_pos_emb(query_states, None, cos, sin, position_ids, g_size_1=group_size_1, g_size_2=_re_group_size_2) 
+    _, group_key_states = apply_grouped_rotary_pos_emb(None, key_states, cos, sin, position_ids, g_size_1=group_size_1, g_size_2=_re_group_size_2) 
 
 
     group_key_states = repeat_kv(group_key_states, self.num_key_value_groups)
-    local_key_states = repeat_kv(local_key_states, self.num_key_value_groups)
+    neighbor_key_states = repeat_kv(neighbor_key_states, self.num_key_value_groups)
     value_states = repeat_kv(value_states, self.num_key_value_groups)
 
-    local_attn_weights = torch.matmul(local_query_states, local_key_states.transpose(2, 3)) / math.sqrt(self.head_dim)
-    group_attn_weights = torch.matmul(group_query_states, group_key_states.transpose(2, 3)) / math.sqrt(self.head_dim) # * math.log(group_size_1, group_size_2)
+    neighbor_attn_weights = torch.matmul(neighbor_query_states, neighbor_key_states.transpose(2, 3)) / math.sqrt(self.head_dim)
+    group_attn_weights = torch.matmul(group_query_states, group_key_states.transpose(2, 3)) / math.sqrt(self.head_dim) 
 
 
     if group_attn_weights.size() != (bsz, self.num_heads, q_len, kv_seq_len):
@@ -148,35 +148,27 @@ def self_extend_forward(
                 f"Attention mask should be of size {(bsz, 1, q_len, kv_seq_len)}, but is {attention_mask.size()}"
             )
         group_attn_weights = group_attn_weights + attention_mask
-        local_attn_weights = local_attn_weights + attention_mask
-
-    mask_value = torch.finfo(attention_mask.dtype).min
+        neighbor_attn_weights = neighbor_attn_weights + attention_mask
 
 
     if q_len == 1:
-        neighbor_attention_mask = torch.zeros((q_len, kv_seq_len), device=local_attn_weights.device)
+        neighbor_attention_mask = torch.zeros((q_len, kv_seq_len), device=neighbor_attn_weights.device)
         neighbor_attention_mask[:, -group_size_2:] = 1
     elif q_len == kv_seq_len:
-        neighbor_attention_mask = torch.ones((q_len, kv_seq_len), device=local_attn_weights.device)
-        neighbor_attention_mask = torch.tril(local_attention_mask)
-        if q_len > group_size_2:
-            # seq length is larger than group_size_2, should do replacement. 
+        neighbor_attention_mask = torch.ones((q_len, kv_seq_len), device=neighbor_attn_weights.device)
+        neighbor_attention_mask = torch.tril(neighbor_attention_mask)
+        if q_len-group_size_2 > 0:
             group_attention_mask =  torch.tril(torch.ones((q_len-group_size_2, kv_seq_len-group_size_2), device=group_attn_weights.device))
             neighbor_attention_mask[group_size_2:, :-group_size_2] -= group_attention_mask
+
     else:
         raise ValueError("q_len should be 1 or seq_len.")
 
 
-    local_attention_mask = local_attention_mask.bool()
-    attn_weights = torch.where(local_attention_mask, local_attn_weights, group_attn_weights*group_weight)
-    # upcast attention to fp32
+    neighbor_attention_mask = neighbor_attention_mask.bool()
+    attn_weights = torch.where(neighbor_attention_mask, neighbor_attn_weights, group_attn_weights)
     attn_weights = nn.functional.softmax(attn_weights, dim=-1, dtype=torch.float32).to(query_states.dtype)
     attn_weights = nn.functional.dropout(attn_weights, p=self.attention_dropout, training=self.training)
-    merged_attn_weights = torch.where(neighbor_attention_mask.bool(), neighbor_attn_weights, group_attn_weights) # replace the group attention with neighbor attention within the neighbor window. 
-    merged_attn_weights = nn.functional.softmax(merged_attn_weights, dim=-1, dtype=torch.float32).to(query_states.dtype) 
-
-
-    
     attn_output = torch.matmul(attn_weights, value_states)
 
     if attn_output.size() != (bsz, self.num_heads, q_len, self.head_dim):

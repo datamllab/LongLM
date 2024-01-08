@@ -30,11 +30,18 @@ This work elicits LLMs' inherent ability to handle long contexts without fine-tu
 ## 2. How to Use SelfExtend
 
 ### 2.1 Setup
-The python packages used are:
+For current Llama Implementation, the python packages used are:
 ```bash
 transformers==4.32.0 
 ```
-Note: the KV cache structure was changed after version 4.36.0 in the transformers package. You may need to modify the implementation.
+However, the KV cache structure was changed after version 4.36.0 in the transformers package. We will updata it to 4.36 in the near future. 
+You can modify the implementation by yourself if you use transformers>=4.36.0
+
+For Mistral Implementation, the python packages used are:
+```bash
+transformers==4.36.2 
+```
+ Mistral is similar to Llama, this implementation can be a good example about how to implement Self-Extend with transformers>=4.36.0
 
 
 ### 2.2 Run
@@ -53,18 +60,37 @@ modify_method_of_instance(loaded_model, "LlamaAttention", "forward", self_extend
 
 ```
 
+```python
+import mistral_self_extend_patch as MistralSE
+from modify_utils import modify_method_of_instance
+from functools import partial
+
+# Load your model, e.g., loaded_model = AutoModelForCausalLM.from_pretrained(model_path) 
+
+# group_size_1 is group_window, group_size_2 is neighbor_window
+self_extend_forward = partial(MistralSE.self_extend_forward, group_size_1=4, group_size_2=1024)
+modify_method_of_instance(loaded_model, "MistralAttention", "forward", self_extend_forward)
+
+# Inference, e.g., loaded_model.generate(...)
+
+```
+
 
 ### 2.3 Passkey Example
 
 To execute a demonstration of SelfExtend on the Passkey Retrivale task, you can use the command below:
 
 ```python
-python example.py
+python llama_example.py # llama
+
+python mistral_example.py # mistra
 ```
 
 
 By running the command, you will have the following results:
 
+
+For Llama
 ```bash
 -----------------------------------
 #Tokens of Prompt:  5144 Passkey target:  89427
@@ -94,6 +120,39 @@ SelfExtend: [What is the pass key? The pass key is 60151.]
 #Tokens of Prompt:  5144 Passkey target:  23789
 Llama2:     [What is the pass key? The pass key is .\n.\n.\n.]
 SelfExtend: [What is the pass key? The pass key is 23789.]
+-----------------------------------
+```
+
+For Mistral
+```bash
+-----------------------------------
+#Tokens of Prompt: 9994 Passkey target: 51013
+Mistral:    [What is the pass key? The pass key is \n\n\n\n\n\n]
+SelfExtend: [What is the pass key? The pass key is 51013.]
+-----------------------------------
+
+-----------------------------------
+#Tokens of Prompt: 9994 Passkey target: 36920
+Mistral:    [What is the pass key? The pass key is \n\n\n\n\n\n]
+SelfExtend: [What is the pass key? The pass key is 36920.]
+-----------------------------------
+
+-----------------------------------
+#Tokens of Prompt: 9994 Passkey target: 83493
+Mistral:    [What is the pass key? The pass key is \n\n\n\n\n\n]
+SelfExtend: [What is the pass key? The pass key is 83493.]
+-----------------------------------
+
+-----------------------------------
+#Tokens of Prompt: 9994 Passkey target: 78585
+Mistral:    [What is the pass key? The pass key is \n\n\n\n\n\n]
+SelfExtend: [What is the pass key? The pass key is 78585.]
+-----------------------------------
+
+-----------------------------------
+#Tokens of Prompt: 9994 Passkey target: 58328
+Mistral:    [What is the pass key? The pass key is \n\n\n\n\n\n]
+SelfExtend: [What is the pass key? The pass key is 58328.]
 -----------------------------------
 ```
 
