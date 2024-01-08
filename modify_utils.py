@@ -3,17 +3,18 @@ from types import MethodType
 
 def modify_method_of_instance(instance, target_class_name, target_method_name, new_method, visited_instances=None):
     """
-        This function modifies the attention method of an instance of a model. 
-        It will replace the forward method of the attention class with the new method.
+        This function modifies the method of an instance of a model class. 
+        It's part from chat-GPT.
+        It will replace the method  with the new method.
+        Currently, we only use this function to modify the attention method of a model. Do not test it further. 
 
-        instance: instance of a model to modify.
-        target_class_name: name of the attention class to modify. E.g. 'LlamaAttention', 'GPTNeoXAttention', etc.
-        new_method: new method to replace the original attention method. E.g. 'forward_with_rerope'. It should include a parameter 'self' to be binded to the instance.
+        instance: 
+            instance of a model to modify.
+        target_class_name: 
+            name of the attention class to modify. E.g. 'LlamaAttention', 'GPTNeoXAttention', etc.
+        new_method: new method to replace the original method. E.g. 'self_extend_forward'. 
+            It should include a parameter 'self' to be binded to the instance.
     """
-    # super important, for Circular References always happens in Python.
-    # Common Data Structures: Python's data structures like lists and dictionaries can contain references to themselves.
-    # Common Patterns in Libraries/Frameworks: Frameworks like PyTorch and TensorFlow can have objects that reference each other in a complex manner.
-    # This might not be evident to the user, but when recursively inspecting the attributes of such objects, one can easily stumble upon circular references.
     if visited_instances is None:
         visited_instances = set()
     # Unique identifier for the instance (using id() since object's id is unique)
@@ -26,10 +27,7 @@ def modify_method_of_instance(instance, target_class_name, target_method_name, n
     # Check if this instance is of the target class
     if instance.__class__.__name__ == target_class_name:
         bond_method = MethodType(new_method, instance) 
-        # original_method = getattr(instance, target_method_name)
         setattr(instance, target_method_name, bond_method)
-        # original_method = getattr(instance, target_method_name)
-        # return original_method
     elif hasattr(instance, '__dict__'):
         for attr_name, attr_value in instance.__dict__.items():
             if isinstance(attr_value, object) and not isinstance(attr_value, (list, tuple, dict, set)):
@@ -51,4 +49,3 @@ def modify_method_of_instance(instance, target_class_name, target_method_name, n
                     if isinstance(item, object):
                         modify_method_of_instance(item, target_class_name, target_method_name, new_method, visited_instances)
     
-    # return getattr(instance, target_method_name)

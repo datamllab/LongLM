@@ -6,6 +6,8 @@ import torch.utils.checkpoint
 from torch import nn
 
 
+# Haven't do test! ! !
+
 # Copied from transformers.models.llama.modeling_llama.rotate_half
 def rotate_half(x):
     """Rotates half the hidden dims of the input."""
