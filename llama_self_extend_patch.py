@@ -1,3 +1,4 @@
+# transfromers version 4.32.0
 import torch
 from transformers.models.llama.modeling_llama import *
 import numpy as np
@@ -5,6 +6,7 @@ import torch.nn as nn
 import math
 from typing import Optional, Tuple
 import torch.nn.functional as F
+
 
 def repeat_kv(hidden_states: torch.Tensor, n_rep: int) -> torch.Tensor:
     """

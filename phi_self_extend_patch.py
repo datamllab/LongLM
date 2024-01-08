@@ -1,3 +1,6 @@
+# transfromers version 4.36.2
+# Should work for 'susnato/phi-2', a hf version of microsfot/phi-2, check the detail in Huggingface Hub. 
+# Haven't tested it! ! !
 import math
 from typing import Optional, Tuple
 from transformers.cache_utils import Cache
@@ -6,7 +9,7 @@ import torch.utils.checkpoint
 from torch import nn
 
 
-# Haven't do test! ! !
+
 
 # Copied from transformers.models.llama.modeling_llama.rotate_half
 def rotate_half(x):
