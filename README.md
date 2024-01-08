@@ -16,6 +16,7 @@ Implementation of the proposed SelfExtend in [LLM Maybe LongLM: Self-Extend LLM 
 
 
 ## Updates:
+- [01/07/2024]: Add Implementation for Mistral
 - [01/05/2024]: Our proposed method is discussed on this [Reddit post](https://www.reddit.com/r/LocalLLaMA/s/IFOnL7yGNK) 
 
 
