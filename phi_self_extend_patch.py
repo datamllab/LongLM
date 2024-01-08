@@ -112,6 +112,7 @@ def self_extend_forward(
                 "with a layer index."
             )
         kv_seq_len += past_key_value.get_usable_length(kv_seq_len, self.layer_idx)
+        #print(kv_seq_len)
     cos, sin = self.rotary_emb(value_states, seq_len=kv_seq_len)
 
 
@@ -138,9 +139,8 @@ def self_extend_forward(
     neighbor_query_rot, _ = apply_rotary_pos_emb(query_rot, None, cos, sin, q_pos)
     _, neighbor_key_rot = apply_rotary_pos_emb(None, key_rot, cos, sin, k_pos)
 
-    group_query_rot, _ = apply_rotary_pos_emb(query_rot, None, cos, sin, q_pos, group_size_1=group_size_1, group_size_2=group_size_2)
-    _, group_key_rot = apply_rotary_pos_emb(None, key_rot, cos, sin, k_pos, group_size_1=group_size_1, group_size_2=group_size_2)
-
+    group_query_rot, _ = apply_group_rotary_pos_emb(query_rot, None, cos, sin, q_pos, group_size_1=group_size_1, group_size_2=group_size_2)
+    _, group_key_rot = apply_group_rotary_pos_emb(None, key_rot, cos, sin, k_pos, group_size_1=group_size_1, group_size_2=group_size_2)
 
     # [batch_size, seq_length, num_heads, head_dim]
     neighbor_query_states = torch.cat((neighbor_query_rot, query_pass), dim=-1)
@@ -154,10 +154,10 @@ def self_extend_forward(
     group_attn_weights = torch.matmul(group_query_states, group_key_states.transpose(2, 3)) / math.sqrt(self.head_dim)
 
 
-    if attn_weights.size() != (bsz, self.num_heads, q_len, kv_seq_len):
+    if neighbor_attn_weights.size() != (bsz, self.num_heads, q_len, kv_seq_len):
         raise ValueError(
             f"Attention weights should be of size {(bsz, self.num_heads, q_len, kv_seq_len)}, but is"
-            f" {attn_weights.size()}"
+            f" {neighbor_attn_weights.size()}"
         )
 
     if attention_mask is not None:
@@ -169,10 +169,10 @@ def self_extend_forward(
         group_attn_weights = group_attn_weights + attention_mask
      
     if q_len == 1:
-        neighbor_attention_mask = torch.zeros((q_len, kv_seq_len), device=local_attn_weights.device)
+        neighbor_attention_mask = torch.zeros((q_len, kv_seq_len), device=neighbor_attn_weights.device)
         neighbor_attention_mask[:, -group_size_2:] = 1
     elif q_len == kv_seq_len:
-        neighbor_attention_mask = torch.ones((q_len, kv_seq_len), device=local_attn_weights.device)
+        neighbor_attention_mask = torch.ones((q_len, kv_seq_len), device=neighbor_attn_weights.device)
         neighbor_attention_mask = torch.tril(neighbor_attention_mask)
         if q_len > group_size_2:
             # seq length is larger than group_size_2, should do replacement. 
