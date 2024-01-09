@@ -16,6 +16,7 @@ Implementation of the proposed SelfExtend in [LLM Maybe LongLM: Self-Extend LLM 
 
 
 ## Updates:
+- [01/08/2024]: Add third-party implementations section
 - [01/07/2024]: Add Implementation for Mistral
 - [01/05/2024]: Our proposed method is discussed on this [Reddit post](https://www.reddit.com/r/LocalLLaMA/s/IFOnL7yGNK) 
 
@@ -180,9 +181,15 @@ Our current implementation is primarily focused on helping readers easily unders
 - [ ] Flash Attention Implementation 
 
 
-## 6. Contributing
+## 6. Third-party Implementations
+- [https://github.com/sdan/selfextend](https://github.com/sdan/selfextend)
+- [https://github.com/ggerganov/llama.cpp](https://github.com/ggerganov/llama.cpp/blob/1fc2f265ff9377a37fd2c61eae9cd813a3491bea/examples/main/main.cpp#L552)
+
+Note: We do not test these third-party implementations, but you can try them out!
+
+## 7. Contributing
 We welcome contributions from the research community to improve the effeicency of SelfExtend. If you have any idea or would like to report a bug, please open an issue or submit a pull request.
 
-## 7. License
+## 8. License
 The code is released under the MIT License.
 
