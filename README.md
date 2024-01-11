@@ -45,6 +45,9 @@ transformers==4.36.2
 ```
  Mistral is similar to Llama, this implementation can be a good example about how to implement Self-Extend with transformers>=4.36.0
 
+### Installation
+
+Clone the repository to your machine and copy your modeling files into the cloned repo directory.
 
 ### 2.2 Run
 ```python
