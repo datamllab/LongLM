@@ -188,7 +188,7 @@ Our current implementation is primarily focused on helping readers easily unders
 Note: We do not test these third-party implementations, but you can try them out!
 
 ## 7. Contributing
-We welcome contributions from the research community to improve the effeicency of SelfExtend. If you have any idea or would like to report a bug, please open an issue or submit a pull request.
+We welcome contributions from the research community to improve the efficiency of SelfExtend. If you have any idea or would like to report a bug, please open an issue or submit a pull request.
 
 ## 8. License
 The code is released under the MIT License.
