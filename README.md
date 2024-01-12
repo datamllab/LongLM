@@ -16,6 +16,7 @@ Implementation of the proposed SelfExtend in [LLM Maybe LongLM: Self-Extend LLM 
 
 
 ## Updates:
+- [01/11/2024]: We've tested the implementation for phi-2. It works. You may find some results on this [Reddit post](https://www.reddit.com/r/LocalLLaMA/comments/194mmki/selfextend_works_for_phi2_now_looks_good/?utm_source=share&utm_medium=web2x&context=3)
 - [01/08/2024]: Add third-party implementations section
 - [01/07/2024]: Add Implementation for Mistral
 - [01/05/2024]: Our proposed method is discussed on this [Reddit post](https://www.reddit.com/r/LocalLLaMA/s/IFOnL7yGNK) 
