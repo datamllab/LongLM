@@ -52,28 +52,6 @@ def apply_grouped_rotary_pos_emb(q, k, cos, sin, position_ids, g_size_1=1, g_siz
 
     return q_embed, k_embed
 
-def apply_neighbor_rotary_pos_emb(q, k, cos, sin, position_ids, g_size=1):
-    # The first two dimensions of cos and sin are always 1, so we can `squeeze` them.
-    position_ids = position_ids % g_size
-
-    cos = cos.squeeze(1).squeeze(0)  # [seq_len, dim]
-    sin = sin.squeeze(1).squeeze(0)  # [seq_len, dim]
-    cos = cos[position_ids].unsqueeze(1)  # [bs, 1, seq_len, dim]
-    sin = sin[position_ids].unsqueeze(1)  # [bs, 1, seq_len, dim]
-    q_embed = (q * cos) + (rotate_half(q) * sin)
-    k_embed = (k * cos) + (rotate_half(k) * sin)
-    return q_embed, k_embed
-
-def apply_identical_rotary_pos_emb(q, k, cos, sin, position_ids, idd_position=1024):
-    position_ids = torch.ones_like(position_ids) * idd_position
-
-    cos = cos.squeeze(1).squeeze(0)  # [seq_len, dim]
-    sin = sin.squeeze(1).squeeze(0)  # [seq_len, dim]
-    cos = cos[position_ids].unsqueeze(1)  # [bs, 1, seq_len, dim]
-    sin = sin[position_ids].unsqueeze(1)  # [bs, 1, seq_len, dim]
-    q_embed = (q * cos) + (rotate_half(q) * sin)
-    k_embed = (k * cos) + (rotate_half(k) * sin)
-    return q_embed, k_embed
 
 def self_extend_forward(
     self,
@@ -125,8 +103,8 @@ def self_extend_forward(
     neighbor_query_states, _ = apply_rotary_pos_emb(query_states, None, cos, sin, query_position_ids) 
     _, neighbor_key_states = apply_rotary_pos_emb(None, key_states, cos, sin, key_position_ids) 
     _re_group_size_2 = 0 if position_ids.max() < group_size_2 else group_size_2 # in case that, the smallest q position, g2-g2//g1 exceed the max position
-    group_query_states, _ = apply_grouped_rotary_pos_emb(query_states, None, cos, sin, position_ids, g_size_1=group_size_1, g_size_2=_re_group_size_2) 
-    _, group_key_states = apply_grouped_rotary_pos_emb(None, key_states, cos, sin, position_ids, g_size_1=group_size_1, g_size_2=_re_group_size_2) 
+    group_query_states, _ = apply_grouped_rotary_pos_emb(query_states, None, cos, sin, query_position_ids, g_size_1=group_size_1, g_size_2=_re_group_size_2) 
+    _, group_key_states = apply_grouped_rotary_pos_emb(None, key_states, cos, sin, key_position_ids, g_size_1=group_size_1, g_size_2=_re_group_size_2) 
 
 
     group_key_states = repeat_kv(group_key_states, self.num_key_value_groups)
