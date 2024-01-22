@@ -33,8 +33,8 @@ def apply_rotary_pos_emb(q, k, cos, sin, position_ids):
     sin = sin.squeeze(1).squeeze(0)  # [seq_len, dim]
     cos = cos[position_ids].unsqueeze(1)  # [bs, 1, seq_len, dim]
     sin = sin[position_ids].unsqueeze(1)  # [bs, 1, seq_len, dim]
-    q_embed = (q * cos[:,:, -q.shape[2]:]) + (rotate_half(q) * sin[:,:, -q.shape[2]:]) 
-    k_embed = (k * cos) + (rotate_half(k) * sin) 
+    q_embed = (q * cos[:,:, -q.shape[2]:]) + (rotate_half(q) * sin[:,:, -q.shape[2]:]) if q is not None else None
+    k_embed = (k * cos) + (rotate_half(k) * sin) if k is not None else None    
     return q_embed, k_embed
 
 def apply_grouped_rotary_pos_emb(q, k, cos, sin, position_ids, g_size_1=8, g_size_2=1024):
@@ -48,8 +48,8 @@ def apply_grouped_rotary_pos_emb(q, k, cos, sin, position_ids, g_size_1=8, g_siz
     sin_q = sin[position_ids_q].unsqueeze(1)  # [bs, 1, seq_len, dim]
     cos_k = cos[position_ids_k].unsqueeze(1)  # [bs, 1, seq_len, dim]
     sin_k = sin[position_ids_k].unsqueeze(1)  # [bs, 1, seq_len, dim]
-    q_embed = (q * cos_q) + (rotate_half(q) * sin_q) 
-    k_embed = (k * cos_k) + (rotate_half(k) * sin_k) 
+    q_embed = (q * cos_q) + (rotate_half(q) * sin_q) if q is not None else None 
+    k_embed = (k * cos_k) + (rotate_half(k) * sin_k) if k is not None else None
     return q_embed, k_embed
 
 
