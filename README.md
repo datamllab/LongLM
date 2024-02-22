@@ -16,6 +16,7 @@ Implementation of the proposed SelfExtend in [LLM Maybe LongLM: Self-Extend LLM 
 
 
 ## Updates:
+- [02/22/2024]: 🔥🔥 We added the [Implementation for Google New LLM Gemma](https://github.com/datamllab/LongLM/blob/master/gemma_self_extend_patch.py)!!! Welcome to try and test it out!!
 - [01/19/2024]: We've added the [implementation for Llama with transformers 4.36.2](https://github.com/datamllab/LongLM/blob/master/llama_self_extend_patch_4_36.py) and the [implementation for microsoft's offical phi-2 with transformers 4.37](https://github.com/datamllab/LongLM/blob/master/phi_self_extend_patch_4_37.py). Another good news: the flash attention version will come in days!💥
 - [01/11/2024]: We've tested the implementation for phi-2. [It works](./img/phi2_long_bench.jpg). You may find some results on this [Reddit post](https://www.reddit.com/r/LocalLLaMA/comments/194mmki/selfextend_works_for_phi2_now_looks_good/?utm_source=share&utm_medium=web2x&context=3) and details on this [X post](https://x.com/serendip410/status/1745668085711790553?s=20)
 - [01/08/2024]: Add third-party implementations section
@@ -46,6 +47,12 @@ For Mistral Implementation, the python packages used are:
 transformers==4.36.2 
 ```
  Mistral is similar to Llama, this implementation can be a good example about how to implement Self-Extend with transformers>=4.36.0
+
+
+For Gemma Implementation, the python packages used are:
+```bash
+transformers==4.38.1
+```
 
 ### Installation
 
