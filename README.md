@@ -98,6 +98,8 @@ To execute a demonstration of SelfExtend on the Passkey Retrivale task, you can 
 python llama_example.py # llama
 
 python mistral_example.py # mistra
+
+python gemma_example.py # gemma
 ```
 
 
@@ -167,6 +169,39 @@ SelfExtend: [What is the pass key? The pass key is 78585.]
 #Tokens of Prompt: 9994 Passkey target: 58328
 Mistral:    [What is the pass key? The pass key is \n\n\n\n\n\n]
 SelfExtend: [What is the pass key? The pass key is 58328.]
+-----------------------------------
+```
+
+For Gemma
+```bash
+-----------------------------------
+#Tokens of Prompt: 5142 Passkey target: 89427
+Gemma:     [What is the pass key? The pass key is 89427.]
+SelfExtend: [What is the pass key? The pass key is 89427.]
+-----------------------------------
+
+-----------------------------------
+#Tokens of Prompt: 5142 Passkey target: 51906
+Gemma:     [What is the pass key? The pass key is 519. Here.]
+SelfExtend: [What is the pass key? The pass key is 51906.]
+-----------------------------------
+
+-----------------------------------
+#Tokens of Prompt: 5142 Passkey target: 38117
+Gemma:     [What is the pass key? The pass key is 38117.]
+SelfExtend: [What is the pass key? The pass key is 38117.]
+-----------------------------------
+
+-----------------------------------
+#Tokens of Prompt: 5142 Passkey target: 60151
+Gemma:     [What is the pass key? The pass key is 60151.]
+SelfExtend: [What is the pass key? The pass key is 60151.]
+-----------------------------------
+
+-----------------------------------
+#Tokens of Prompt: 5142 Passkey target: 23789
+Gemma:     [What is the pass key? The pass key is 2378. The]
+SelfExtend: [What is the pass key? The pass key is 23789.]
 -----------------------------------
 ```
 
