@@ -14,19 +14,35 @@ Implementation of the proposed SelfExtend in [LLM Maybe LongLM: Self-Extend LLM 
 }
 ```
 
-
 ## Updates:
+- [03/20/2024]: We do many updates:
+  - We added the [FlashAttention](./self_extend_patch/selfextend_flash_attn.py) implementation of self-extend, credits to [Qingquan Song](https://qingquansong.github.io/)! This implementation uses the original flash_attn from Tri Dao. 
+  - We also tried to implement [FlashAttention](./self_extend_patch/triton_self_extend_flash_attn.py) for self-extend using Triton. But currently, **it only works for the prefill stage, and cannot work well for the decoding stage.** We are eagerly debugging this. Any suggestions are very welcome!  
+  - We added the support to Qwen1.5. Check the [codes](./self_extend_patch/Qwen2.py) for more details.
+  - We reorganized this repo and refactored several files. Now, all codes run with **transformers==4.38.2 and flash_attn==2.5.6**. Legacy codes/examples/README are packed into [legacy_patch_before_4_38](./legacy_patch_before_4_38/). We recommend using our docker: [hoytjin/selfextend_docker:v0.1](https://hub.docker.com/r/hoytjin/selfextend_docker/tags) to avoid any environmental issues. 
+  - We updated the api, now you can simply call `SelfExtend.apply(loaded model, group size, window size)` to enjoy our self-extend! Check and run the provided [example](./example.py) for more details! 
+  - We add a new passkey example with 32k context length and a more challenging 10-digit passkey. 
 - [02/22/2024]: 🔥🔥 We added the [Implementation for Google New LLM Gemma](https://github.com/datamllab/LongLM/blob/master/gemma_self_extend_patch.py)!!! Welcome to try and test it out!!
-- [01/19/2024]: We've added the [implementation for Llama with transformers 4.36.2](https://github.com/datamllab/LongLM/blob/master/llama_self_extend_patch_4_36.py) and the [implementation for microsoft's offical phi-2 with transformers 4.37](https://github.com/datamllab/LongLM/blob/master/phi_self_extend_patch_4_37.py). Another good news: the flash attention version will come in days!💥
+- [01/19/2024]: We've added the [implementation for Llama with transformers 4.36.2](https://github.com/datamllab/LongLM/blob/master/llama_self_extend_patch_4_36.py) and the [implementation for Microsoft's official phi-2 with transformers 4.37](https://github.com/datamllab/LongLM/blob/master/phi_self_extend_patch_4_37.py). Another good news: the flash attention version will come in days!💥
 - [01/11/2024]: We've tested the implementation for phi-2. [It works](./img/phi2_long_bench.jpg). You may find some results on this [Reddit post](https://www.reddit.com/r/LocalLLaMA/comments/194mmki/selfextend_works_for_phi2_now_looks_good/?utm_source=share&utm_medium=web2x&context=3) and details on this [X post](https://x.com/serendip410/status/1745668085711790553?s=20)
 - [01/08/2024]: Add third-party implementations section
 - [01/07/2024]: Add Implementation for Mistral
 - [01/05/2024]: Our proposed method is discussed on this [Reddit post](https://www.reddit.com/r/LocalLLaMA/s/IFOnL7yGNK) 
 
+## Possible issues unrelated to Self-Extend:
+- Gemma-7b has to be loaded in bfloat16. But Gemma-2b still works well with float16.
+- If using transformers 4.36, the default attention used by Llama is `LlamaSpdaAttention` rather than `LlamaSpdaAttention`. Be careful about this and make sure you replace the forward method with the correct class.
+- Mistral's sliding window should be disabled to use Self-Extend. The reason of why we should not use SWA can be found in our paper.  
+
+## Third-party Implementations
+
+**Llama.cpp** [https://github.com/ggerganov/llama.cpp](https://github.com/ggerganov/llama.cpp/blob/1fc2f265ff9377a37fd2c61eae9cd813a3491bea/examples/main/main.cpp#L552)
+
+Llama.cpp has a great implementation and integration for self-extend! Have a try! 😄
 
 
 ## 1. Overview 
-This work elicits LLMs' inherent ability to handle long contexts without fine-tuning. The limited length of the training sequence during training may limit the application of Large Language Models (LLMs) on long input sequences for inference. In this work, we argue that existing LLMs themselves have inherent capabilities for handling long contexts. Based on this argument, we suggest extending LLMs' context window by themselves to fully utilize the inherent ability. We propose Self-Extend to stimulate LLMs' long context handling potential. The basic idea is to construct bi-level attention information: the group level and the neighbor level. The two levels are computed by the original model's self-attention, which means the proposed  does not require any training.
+This work elicits LLMs' inherent ability to handle long contexts without fine-tuning. The limited length of the training sequence during training may limit the application of Large Language Models (LLMs) on long input sequences for inference. In this work, we argue that existing LLMs themselves have inherent capabilities for handling long contexts. Based on this argument, we suggest extending LLMs' context window by themselves to fully utilize their inherent ability. We propose Self-Extend to stimulate LLMs' long context handling potential. The basic idea is to construct bi-level attention information: the group level and the neighbor level. The two levels are computed by the original model's self-attention, which means the proposed does not require any training.
 
 <p align="center">
 <img width="600" src="./img/self_ext.jpg">
@@ -35,24 +51,16 @@ This work elicits LLMs' inherent ability to handle long contexts without fine-tu
 ## 2. How to Use SelfExtend
 
 ### 2.1 Setup
+
 For current Llama Implementation, the python packages used are:
 ```bash
-transformers==4.32.0 
+transformers==4.38.2
+flash_attn==2.5.6 
 ```
-However, the KV cache structure was changed after version 4.36.0 in the transformers package. We will updata it to 4.36 in the near future. 
-You can modify the implementation by yourself if you use transformers>=4.36.0
 
-For Mistral Implementation, the python packages used are:
-```bash
-transformers==4.36.2 
-```
- Mistral is similar to Llama, this implementation can be a good example about how to implement Self-Extend with transformers>=4.36.0
+We recommend to use this docker: [hoytjin/selfextend_docker:v0.1](https://hub.docker.com/r/hoytjin/selfextend_docker/tags)
 
-
-For Gemma Implementation, the python packages used are:
-```bash
-transformers==4.38.1
-```
+We provided patches for several models before. You may check [legacy_patch_before_4_38](./legacy_patch_before_4_38/). It contains legacy patches (llama, mistral, phi..etc) and README.
 
 ### Installation
 
@@ -60,119 +68,26 @@ Clone the repository to your machine and copy your modeling files into the clone
 
 ### 2.2 Run
 ```python
-import llama_self_extend_patch as LlamaSE
-from modify_utils import modify_method_of_instance
-from functools import partial
+import SelfExtend
 
 # Load your model, e.g., loaded_model = AutoModelForCausalLM.from_pretrained(model_path) 
 
-# group_size_1 is group_window, group_size_2 is neighbor_window
-self_extend_forward = partial(LlamaSE.self_extend_forward, group_size_1=4, group_size_2=1024)
-modify_method_of_instance(loaded_model, "LlamaAttention", "forward", self_extend_forward)
+# group size, neighbor window. 
+
+SelfExtend.apply(loaded_model, group_size, window_size, enable_flash_attention=False)
 
 # Inference, e.g., loaded_model.generate(...)
 
 ```
+enable_flash_attention=False by default, you may set enable_flash_attention=True, if the model is loaed with FlashAttention enabled. 
 
-```python
-import mistral_self_extend_patch as MistralSE
-from modify_utils import modify_method_of_instance
-from functools import partial
+We use passkeyretrieval as an example to show how to use self-extend. You may check [example.py](./example.py):
 
-# Load your model, e.g., loaded_model = AutoModelForCausalLM.from_pretrained(model_path) 
-
-# group_size_1 is group_window, group_size_2 is neighbor_window
-self_extend_forward = partial(MistralSE.self_extend_forward, group_size_1=4, group_size_2=1024)
-modify_method_of_instance(loaded_model, "MistralAttention", "forward", self_extend_forward)
-
-# Inference, e.g., loaded_model.generate(...)
-
-```
-
-
-### 2.3 Passkey Example
-
-To execute a demonstration of SelfExtend on the Passkey Retrivale task, you can use the command below:
-
-```python
-python llama_example.py # llama
-
-python mistral_example.py # mistra
-```
-
-
-By running the command, you will have the following results:
-
-
-For Llama
 ```bash
------------------------------------
-#Tokens of Prompt:  5144 Passkey target:  89427
-Llama2:     [What is the pass key? The pass key is .\n.\n.\n.]
-SelfExtend: [What is the pass key? The pass key is 89427.]
------------------------------------
+python example.py
 
------------------------------------
-#Tokens of Prompt:  5144 Passkey target:  51906
-Llama2:     [What is the pass key? The pass key is .\n.\n.\n.]
-SelfExtend: [What is the pass key? The pass key is 51906.]
------------------------------------
-
------------------------------------
-#Tokens of Prompt:  5144 Passkey target:  38117
-Llama2:     [What is the pass key? The pass key is \n.\n.\n.\n]
-SelfExtend: [What is the pass key? The pass key is 38117.]
------------------------------------
-
------------------------------------
-#Tokens of Prompt:  5144 Passkey target:  60151
-Llama2:     [What is the pass key? The pass key is .\n.\n.\n.]
-SelfExtend: [What is the pass key? The pass key is 60151.]
------------------------------------
-
------------------------------------
-#Tokens of Prompt:  5144 Passkey target:  23789
-Llama2:     [What is the pass key? The pass key is .\n.\n.\n.]
-SelfExtend: [What is the pass key? The pass key is 23789.]
------------------------------------
 ```
-
-For Mistral
-```bash
------------------------------------
-#Tokens of Prompt: 9994 Passkey target: 51013
-Mistral:    [What is the pass key? The pass key is \n\n\n\n\n\n]
-SelfExtend: [What is the pass key? The pass key is 51013.]
------------------------------------
-
------------------------------------
-#Tokens of Prompt: 9994 Passkey target: 36920
-Mistral:    [What is the pass key? The pass key is \n\n\n\n\n\n]
-SelfExtend: [What is the pass key? The pass key is 36920.]
------------------------------------
-
------------------------------------
-#Tokens of Prompt: 9994 Passkey target: 83493
-Mistral:    [What is the pass key? The pass key is \n\n\n\n\n\n]
-SelfExtend: [What is the pass key? The pass key is 83493.]
------------------------------------
-
------------------------------------
-#Tokens of Prompt: 9994 Passkey target: 78585
-Mistral:    [What is the pass key? The pass key is \n\n\n\n\n\n]
-SelfExtend: [What is the pass key? The pass key is 78585.]
------------------------------------
-
------------------------------------
-#Tokens of Prompt: 9994 Passkey target: 58328
-Mistral:    [What is the pass key? The pass key is \n\n\n\n\n\n]
-SelfExtend: [What is the pass key? The pass key is 58328.]
------------------------------------
-```
-
-
-
-## 4.How to choose the group_size and neighbor_window
+## 3.How to choose the group_size and neighbor_window
 
 The following thoughts are based on our experience:
 
@@ -185,23 +100,10 @@ The following thoughts are based on our experience:
 
 - Maybe, for a sequence of length L, you can try the smallest group size first [calculated by: G * (L- w_n) + w_n] , and then test whether larger group can be better.
 
-## 5. Future Plan
-Our current implementation is primarily focused on helping readers easily understand the proposed method, and it aligns with the pseudocode. Its efficiency is not yet optimal. In the future, we plan to:
 
-- [ ] Reduce redundant attention computation. 
-- [ ] Useless KV-cache eviction for neighbor/normal attention.
-- [ ] Flash Attention Implementation 
-
-
-## 6. Third-party Implementations
-- [https://github.com/sdan/selfextend](https://github.com/sdan/selfextend)
-- [https://github.com/ggerganov/llama.cpp](https://github.com/ggerganov/llama.cpp/blob/1fc2f265ff9377a37fd2c61eae9cd813a3491bea/examples/main/main.cpp#L552)
-
-Note: We do not test these third-party implementations, but you can try them out!
-
-## 7. Contributing
+## 5. Contributing
 We welcome contributions from the research community to improve the effeicency of SelfExtend. If you have any idea or would like to report a bug, please open an issue or submit a pull request.
 
-## 8. License
+## 6. License
 The code is released under the MIT License.
 
