@@ -1,18 +1,8 @@
 # LLM Maybe LongLM: Self-Extend LLM Context Window Without Tuning
 
 
-Implementation of the proposed SelfExtend in [LLM Maybe LongLM: Self-Extend LLM Context Window Without Tuning](https://arxiv.org/pdf/2401.01325.pdf). If you find our method useful, please kindly cite our paper.
+Implementation of the proposed SelfExtend in [LLM Maybe LongLM: Self-Extend LLM Context Window Without Tuning](https://arxiv.org/pdf/2401.01325.pdf). 
 
-```bibtex
-@misc{jin2024llm,
-      title={LLM Maybe LongLM: Self-Extend LLM Context Window Without Tuning}, 
-      author={Hongye Jin and Xiaotian Han and Jingfeng Yang and Zhimeng Jiang and Zirui Liu and Chia-Yuan Chang and Huiyuan Chen and Xia Hu},
-      year={2024},
-      eprint={2401.01325},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL}
-}
-```
 
 ## Updates:
 - [03/20/2024]: We do many updates:
@@ -22,12 +12,15 @@ Implementation of the proposed SelfExtend in [LLM Maybe LongLM: Self-Extend LLM 
   - We reorganized this repo and refactored several files. Now, all codes run with **transformers==4.38.2 and flash_attn==2.5.6**. Legacy codes/examples/README are packed into [legacy_patch_before_4_38](./legacy_patch_before_4_38/). We recommend using our docker: [hoytjin/selfextend_docker:v0.1](https://hub.docker.com/r/hoytjin/selfextend_docker/tags) to avoid any environmental issues. 
   - We updated the api, now you can simply call `SelfExtend.apply(loaded model, group size, window size)` to enjoy our self-extend! Check and run the provided [example](./example.py) for more details! 
   - We add a new passkey example with 32k context length and a more challenging 10-digit passkey. 
-- [02/22/2024]: 🔥🔥 We added the [Implementation for Google New LLM Gemma](https://github.com/datamllab/LongLM/blob/master/gemma_self_extend_patch.py)!!! Welcome to try and test it out!!
+  - Please join our [Discord](https://discord.gg/hGZSeH8h) for discussion 🔥🔥 
+- [02/22/2024]: We added the [Implementation for Google New LLM Gemma](https://github.com/datamllab/LongLM/blob/master/gemma_self_extend_patch.py)!!! Welcome to try and test it out!!
 - [01/19/2024]: We've added the [implementation for Llama with transformers 4.36.2](https://github.com/datamllab/LongLM/blob/master/llama_self_extend_patch_4_36.py) and the [implementation for Microsoft's official phi-2 with transformers 4.37](https://github.com/datamllab/LongLM/blob/master/phi_self_extend_patch_4_37.py). Another good news: the flash attention version will come in days!💥
 - [01/11/2024]: We've tested the implementation for phi-2. [It works](./img/phi2_long_bench.jpg). You may find some results on this [Reddit post](https://www.reddit.com/r/LocalLLaMA/comments/194mmki/selfextend_works_for_phi2_now_looks_good/?utm_source=share&utm_medium=web2x&context=3) and details on this [X post](https://x.com/serendip410/status/1745668085711790553?s=20)
 - [01/08/2024]: Add third-party implementations section
 - [01/07/2024]: Add Implementation for Mistral
 - [01/05/2024]: Our proposed method is discussed on this [Reddit post](https://www.reddit.com/r/LocalLLaMA/s/IFOnL7yGNK) 
+
+
 
 ## Possible issues unrelated to Self-Extend:
 - Gemma-7b has to be loaded in bfloat16. But Gemma-2b still works well with float16.
@@ -99,6 +92,19 @@ The following thoughts are based on our experience:
   > Sometimes, a larger group size can be beneficial. This may be due to the fact that larger positions are not well-trained. A larger group size can utilize smaller positions, which have received more training, to facilitate extension. However, smaller group sizes tend to have better precision. Thus, there is a trade-off. For more details, refer to the ablation study section. <br><br>For example:<br>If the input length for a QA task is 15,800, with a neighbor window set to 1,024, the group size can be set to 5. This is because 5 * (4,096 - 1,024) + 1,024 equals 16,384, which is greater than 15,800. However, setting the group size to 6, or even larger, such as 8 or 16, might improve the model's performance. With a group size of 5, Self-Extend uses positions 1,025 to 3,979 to extend the context window. If the group size is set to 8, Self-Extend uses positions 1,025 to 2,871 for extension. Although a group size of 8 is less precise than a group size of 5, the positions 2,872 to 3,979, utilized by a group size of 5, are less trained during pretraining, which may affect the effectiveness of the extension.
 
 - Maybe, for a sequence of length L, you can try the smallest group size first [calculated by: G * (L- w_n) + w_n] , and then test whether larger group can be better.
+
+
+If you find our method useful, please kindly cite our paper.
+```bibtex
+@misc{jin2024llm,
+      title={LLM Maybe LongLM: Self-Extend LLM Context Window Without Tuning}, 
+      author={Hongye Jin and Xiaotian Han and Jingfeng Yang and Zhimeng Jiang and Zirui Liu and Chia-Yuan Chang and Huiyuan Chen and Xia Hu},
+      year={2024},
+      eprint={2401.01325},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
+}
+```
 
 
 ## 5. Contributing
