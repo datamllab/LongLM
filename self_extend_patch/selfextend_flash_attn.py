@@ -1,7 +1,7 @@
 from flash_attn import flash_attn_func, flash_attn_varlen_func
 import torch
 
-# must replace orginal falsh forward method with the following one first, to enbale the window feature.
+# must replace orginal flash forward method with the following one first, to enbale the window feature.
 def flash_attention2_forward_with_window_size(
     self,
     query_states,
