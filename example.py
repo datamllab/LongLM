@@ -21,11 +21,11 @@ for model_name in model_lists:
         # Disable Mistral's sliding window
         config = AutoConfig.from_pretrained(model_name)
         config.sliding_window = None
-        model = AutoModelForCausalLM.from_pretrained(model_name, config=config, cache_dir='/data/HyJ', device_map="auto", torch_dtype=torch.bfloat16, use_flash_attention_2=use_flash)
+        model = AutoModelForCausalLM.from_pretrained(model_name, config=config, device_map="auto", torch_dtype=torch.bfloat16, use_flash_attention_2=use_flash)
     else:
-        model = AutoModelForCausalLM.from_pretrained(model_name, cache_dir='/data/HyJ', device_map="auto", torch_dtype=torch.bfloat16, use_flash_attention_2=use_flash)
+        model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", torch_dtype=torch.bfloat16, use_flash_attention_2=use_flash)
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir='/data/HyJ')
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
     model.eval()
     file_name = "passkey_examples_32k.jsonl"
     #for line in open("passkey_examples_5k.jsonl", "r"):
