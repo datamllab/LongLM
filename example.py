@@ -4,6 +4,7 @@ warnings.filterwarnings("ignore")
 
 import torch 
 import json
+import time
 from transformers.models.llama.modeling_llama import LlamaAttention
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
 
@@ -15,21 +16,23 @@ group_size = 32
 use_flash = True
 
 model_lists = ['google/gemma-7b-it', 'meta-llama/Llama-2-7b-chat-hf', 'mistralai/Mistral-7B-Instruct-v0.1', ]
+# model_lists = ['meta-llama/Llama-2-7b-chat-hf']
+
 
 for model_name in model_lists:
     if 'Mistral' in model_name:
         # Disable Mistral's sliding window
         config = AutoConfig.from_pretrained(model_name)
         config.sliding_window = None
-        model = AutoModelForCausalLM.from_pretrained(model_name, config=config, cache_dir='/data/HyJ', device_map="auto", torch_dtype=torch.bfloat16, use_flash_attention_2=use_flash)
+        model = AutoModelForCausalLM.from_pretrained(model_name, config=config, device_map="auto", torch_dtype=torch.bfloat16, use_flash_attention_2=use_flash)
     else:
-        model = AutoModelForCausalLM.from_pretrained(model_name, cache_dir='/data/HyJ', device_map="auto", torch_dtype=torch.bfloat16, use_flash_attention_2=use_flash)
+        model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", torch_dtype=torch.bfloat16, use_flash_attention_2=use_flash)
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir='/data/HyJ')
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
     model.eval()
-    file_name = "passkey_examples_32k.jsonl"
-    #for line in open("passkey_examples_5k.jsonl", "r"):
-    #for line in open("passkey_examples_10k.jsonl", "r"):
+    file_name = "passkey_examples.jsonl"
+
+    print("=========="*2 + "**Original**" + "=========="*2)
     for line in open(file_name, "r"):
         example = json.loads(line)
         prompt_postfix = "What is the pass key? The pass key is "
@@ -39,11 +42,14 @@ for model_name in model_lists:
         print( f"#Tokens of Prompt:", input_ids.shape[1], end=" " )
         print( "Passkey target:", example["target"] )
 
+        start_time = time.time()
         tokens = model.generate(input_ids, max_new_tokens=len(example["target"]))
+        end_time = time.time()
         answer = prompt_postfix + tokenizer.decode(tokens[0].tolist()[input_ids.shape[1]:], skip_special_tokens=True)
         answer = answer.replace("\n", "\\n")
         answer= f"{model_name}:\n     [ {answer} ]"
         print( answer )
+        print( f"Runing Time: {end_time - start_time:.2f} sec" )
         print( "-----------------------------------\n" )
 
     
@@ -57,9 +63,12 @@ for model_name in model_lists:
         print( f"#Tokens of Prompt:", input_ids.shape[1], end=" " )
         print( "Passkey target:", example["target"] )
 
+        start_time = time.time()
         tokens = model.generate(input_ids, max_new_tokens=len(example["target"]))
+        end_time = time.time()
         answer = prompt_postfix + tokenizer.decode(tokens[0].tolist()[input_ids.shape[1]:], skip_special_tokens=True)
         answer = answer.replace("\n", "\\n")
         answer= f"SelfExtended-{model_name}:\n     [ {answer} ]"
         print( answer )
+        print( f"Runing Time: {end_time - start_time:.2f} sec" )
         print( "-----------------------------------\n" )
