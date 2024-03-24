@@ -160,7 +160,23 @@ def apply(loaded_model, group_size, window_size, enable_flash_attention=False, s
             if not modifed_2:
                 raise Exception(f"Failed to modify the attention method of {arch_name}")
     elif 'Phi' in arch_name:
-        pass
+        if enable_flash_attention:
+            self_extend_attention_forward = partial(SE.Phi.flash_self_extend_forward,
+                                            group_size_1=group_size, 
+                                            group_size_2=window_size,
+                                            scale_base=scale_base)
+            modifed_1 = modify_method_of_instance(loaded_model, "PhiFlashAttention2", "_flash_attention_forward", SE.selfextend_flash_attn.flash_attention2_forward_with_window_size)
+            modifed_2 = modify_method_of_instance(loaded_model, "PhiFlashAttention2", "forward", self_extend_attention_forward)
+            if (not modifed_1) or (not modifed_2):
+                raise Exception(f"Failed to modify the attention method of {arch_name}")
+        else:
+            self_extend_attention_forward = partial(SE.Phi.self_extend_forward,
+                                            group_size_1=group_size, 
+                                            group_size_2=window_size,
+                                            scale_base=scale_base)
+            modifed_2 = modify_method_of_instance(loaded_model, "PhiAttention", "forward", self_extend_attention_forward)
+            if not modifed_2:
+                raise Exception(f"Failed to modify the attention method of {arch_name}")
     else:
         raise NotImplementedError
 
