@@ -8,7 +8,8 @@ from typing import Optional, Tuple
 import torch.nn.functional as F
 from transformers.cache_utils import Cache
 from flash_attn import flash_attn_func, flash_attn_varlen_func
-from .selfextend_flash_attn import self_extend_flash_forward 
+from .selfextend_flash_attn import self_extend_flash_forward
+from .selfextend_flash_attn_triton import self_extend_flash_forward_triton
 
 
 
@@ -334,3 +335,101 @@ def flash_self_extend_forward(
     return attn_output, attn_weights, past_key_value
 
  
+
+
+
+def flash_self_extend_forward_triton(
+    self,
+    hidden_states: torch.Tensor,
+    attention_mask: Optional[torch.Tensor] = None,
+    position_ids: Optional[torch.LongTensor] = None,
+    past_key_value: Optional[Cache] = None,
+    output_attentions: bool = False,
+    use_cache: bool = False,
+    group_size_1: Optional[float] = 8,
+    group_size_2: Optional[float] = 1024,
+    scale_base: Optional[int] = -1,
+    cache_position: Optional[torch.LongTensor] = None,
+    **kwargs,
+) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+    """
+        Require updating tansformers to >= 4.38.2, flash_attn >= 2.5.6
+        a. Only support causal mask.
+        b. Don't support atttention_mask.
+        c. Never test it with batch size > 1.
+        d. Only support q_len = 1 or q_len = seq_len.
+    """
+    if "padding_mask" in kwargs:
+        warnings.warn(
+            "Passing `padding_mask` is deprecated and will be removed in v4.37. Please make sure use `attention_mask` instead.`"
+        )
+        attention_mask = kwargs.pop("padding_mask")
+
+    bsz, q_len, _ = hidden_states.size()
+
+    query_states = self.q_proj(hidden_states)
+    key_states = self.k_proj(hidden_states)
+    value_states = self.v_proj(hidden_states)
+
+    query_states = query_states.view(bsz, q_len, self.num_heads, self.head_dim).transpose(1, 2)
+    key_states = key_states.view(bsz, q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
+    value_states = value_states.view(bsz, q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
+
+    if scale_base > 0:
+        scaled_query = query_states * ((position_ids + 1)[:, None, :, None].log() / np.log(scale_base)).clip(1).to(query_states.dtype) # log scale 
+        #scaled_query = query_states * (((0.1*(((position_ids+1)[:, None, :, None]/scale_base).log())+1)**2).clip(1)).to(query_states.dtype) # Yarn scale 
+    else:
+        scaled_query = query_states
+    
+    past_key_value = getattr(self, "past_key_value", past_key_value)
+    if past_key_value is not None:
+        # sin and cos are specific to RoPE models; position_ids needed for the static cache
+        cache_kwargs = {"cache_position": cache_position}
+        key_states, value_states = past_key_value.update(key_states, value_states, self.layer_idx, cache_kwargs)
+    kv_seq_len = key_states.shape[-2]
+
+    query_position = position_ids
+    # only consider bsz=1 for now. 
+    key_position = position_ids if q_len != 1 else torch.arange(kv_seq_len, dtype=position_ids.dtype).to(query_position.device).view(1, kv_seq_len) 
+    attn_dropout = self.config.attention_dropout if self.training else 0.0
+
+
+    # set correct position_ids & apply RoPE.
+    neighbor_q_cos, neighbor_q_sin = self.rotary_emb(value_states, query_position, seq_len=None)
+    neighbor_k_cos, neighbor_k_sin = self.rotary_emb(value_states, key_position, seq_len=None)
+
+    _re_group_size_2 = 0 if query_position.max() < group_size_2 else group_size_2 # in case that, the smallest q position, g2-g2//g1 exceed the max position
+    group_query_position = query_position // group_size_1 + _re_group_size_2 - _re_group_size_2 / group_size_1
+    group_key_position = key_position // group_size_1
+
+    group_q_cos, group_q_sin = self.rotary_emb(value_states, group_query_position, seq_len=None)
+    group_k_cos, group_k_sin = self.rotary_emb(value_states, group_key_position, seq_len=None)
+
+    neighbor_query_states, _ = apply_rotary_pos_emb(scaled_query, None, neighbor_q_cos, neighbor_q_sin, None)
+    _, neighbor_key_states = apply_rotary_pos_emb(None, key_states, neighbor_k_cos, neighbor_k_sin, None)
+    group_query_states, _ = apply_rotary_pos_emb(scaled_query, None, group_q_cos, group_q_sin, None)
+    _, group_key_states = apply_rotary_pos_emb(None, key_states, group_k_cos, group_k_sin, None)
+    
+    attn_output = self_extend_flash_forward_triton(self,
+                                            query_position,
+                                            group_size_2,
+                                            neighbor_query_states,
+                                            neighbor_key_states,
+                                            group_query_states,
+                                            group_key_states,
+                                            value_states,
+                                            attention_mask,
+                                            bsz,
+                                            q_len,
+                                            kv_seq_len,
+                                            attn_dropout,
+                                        )
+
+    
+    attn_output = attn_output.contiguous()
+    attn_output = attn_output.view(bsz, q_len, -1).contiguous()
+    attn_output = self.o_proj(attn_output)
+
+    if not output_attentions:
+        attn_weights = None
+    return attn_output, attn_weights, past_key_value

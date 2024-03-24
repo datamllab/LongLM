@@ -64,7 +64,7 @@ def modify_method_of_instance(instance, target_class_name, target_method_name, n
     return target_found
 
 
-def apply(loaded_model, group_size, window_size, enable_flash_attention=False, scale_base=-1):
+def apply(loaded_model, group_size, window_size, enable_flash_attention=False, scale_base=-1, flash_attention_impl="triton"):
     '''
         loaded_model: 
             model to apply the self-attention extension. 
@@ -87,14 +87,30 @@ def apply(loaded_model, group_size, window_size, enable_flash_attention=False, s
     arch_name = loaded_model.__class__.__name__
     if 'Llama' in arch_name:
         if enable_flash_attention:
-            self_extend_attention_forward = partial(SE.Llama.flash_self_extend_forward,
+            if flash_attention_impl == "flash_attn":
+                self_extend_attention_forward = partial(SE.Llama.flash_self_extend_forward,
                                             group_size_1=group_size, 
                                             group_size_2=window_size,
                                             scale_base=scale_base)
-            modifed_1 = modify_method_of_instance(loaded_model, "LlamaFlashAttention2", "_flash_attention_forward", SE.selfextend_flash_attn.flash_attention2_forward_with_window_size)
-            modifed_2 = modify_method_of_instance(loaded_model, "LlamaFlashAttention2", "forward", self_extend_attention_forward)
-            if (not modifed_1) or (not modifed_2):
-                raise Exception(f"Failed to modify the attention method of {arch_name}")
+                modifed_1 = modify_method_of_instance(loaded_model, "LlamaFlashAttention2", "_flash_attention_forward", SE.selfextend_flash_attn.flash_attention2_forward_with_window_size)
+                modifed_2 = modify_method_of_instance(loaded_model, "LlamaFlashAttention2", "forward", self_extend_attention_forward)
+                print("Using flash_attn flash attention!!")
+                if (not modifed_1) or (not modifed_2):
+                    raise Exception(f"Failed to modify the attention method of {arch_name}")
+
+            elif flash_attention_impl == "triton":
+                self_extend_attention_forward = partial(SE.Llama.flash_self_extend_forward_triton,
+                                            group_size_1=group_size, 
+                                            group_size_2=window_size,
+                                            scale_base=scale_base)
+                modifed = modify_method_of_instance(loaded_model, "LlamaFlashAttention2", "forward", self_extend_attention_forward)
+                print("Using triton flash attention!!")
+                if (not modifed):
+                    raise Exception(f"Failed to modify the attention method of {arch_name}")
+            else:
+                raise Exception(f"Need to set the flash_attention_impl to 'flash_attn' or 'triton'.")
+
+
         else:
             self_extend_attention_forward = partial(SE.Llama.self_extend_forward,
                                             group_size_1=group_size, 

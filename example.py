@@ -15,8 +15,8 @@ window_size = 1024
 group_size = 32
 use_flash = True
 
-model_lists = ['google/gemma-7b-it', 'meta-llama/Llama-2-7b-chat-hf', 'mistralai/Mistral-7B-Instruct-v0.1', ]
-# model_lists = ['meta-llama/Llama-2-7b-chat-hf']
+# model_lists = ['google/gemma-7b-it', 'meta-llama/Llama-2-7b-chat-hf', 'mistralai/Mistral-7B-Instruct-v0.1', ]
+model_lists = ['meta-llama/Llama-2-7b-chat-hf']
 
 
 for model_name in model_lists:
@@ -53,8 +53,30 @@ for model_name in model_lists:
         print( "-----------------------------------\n" )
 
     
-    print("=========="*2 + "**SelfExtend**" + "=========="*2)
-    SelfExtend.apply(model, group_size, window_size, enable_flash_attention=use_flash)
+    print("=========="*2 + "**SelfExtend using flash_attn**" + "=========="*2)
+    SelfExtend.apply(model, group_size, window_size, enable_flash_attention=use_flash, flash_attention_impl="flash_attn") ## flash_attention_impl="triton" or "flash_attn"
+    for line in open(file_name, "r"):
+        example = json.loads(line)
+        prompt_postfix = "What is the pass key? The pass key is "
+        prompt = example["input"] + prompt_postfix
+        input_ids = tokenizer(prompt, return_tensors="pt").input_ids
+        print( f"#Tokens of Prompt:", input_ids.shape[1], end=" " )
+        print( "Passkey target:", example["target"] )
+
+        start_time = time.time()
+        tokens = model.generate(input_ids, max_new_tokens=len(example["target"]))
+        end_time = time.time()
+        answer = prompt_postfix + tokenizer.decode(tokens[0].tolist()[input_ids.shape[1]:], skip_special_tokens=True)
+        answer = answer.replace("\n", "\\n")
+        answer= f"SelfExtended-{model_name}:\n     [ {answer} ]"
+        print( answer )
+        print( f"Runing Time: {end_time - start_time:.2f} sec" )
+        print( "-----------------------------------\n" )
+
+
+
+    print("=========="*2 + "**SelfExtend using triton**" + "=========="*2)
+    SelfExtend.apply(model, group_size, window_size, enable_flash_attention=use_flash, flash_attention_impl="triton") ## flash_attention_impl="triton" or "flash_attn"
     for line in open(file_name, "r"):
         example = json.loads(line)
         prompt_postfix = "What is the pass key? The pass key is "
