@@ -51,7 +51,7 @@ def _self_extend_flash_forward_triton(q, k, q1, k1, v, causal, sm_scale, window)
             BLOCK_N = 32
             grid = (triton.cdiv(q.shape[2], BLOCK_M), q.shape[0] * q.shape[1])
             L = torch.empty((q.shape[0] * q.shape[1], q.shape[2]), device=q.device, dtype=torch.float32)
-            _fwd_kernel_v3[grid](
+            _fwd_kernel[grid](
                 q, 
                 k,
                 q1,
@@ -88,7 +88,7 @@ def _self_extend_flash_forward_triton(q, k, q1, k1, v, causal, sm_scale, window)
     }
 )
 @triton.jit
-def _fwd_kernel_v3(
+def _fwd_kernel(
     Q, 
     K,
     Q1,

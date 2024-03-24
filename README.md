@@ -5,6 +5,7 @@ Implementation of the proposed SelfExtend in [LLM Maybe LongLM: Self-Extend LLM 
 
 
 ## Updates:
+- [03/24/2024]: We added [Tirton](https://github.com/openai/triton) implemented flash self-extend. Now, you can use our [Triton implemented FlashSelfExtend](./self_extend_patch/selfextend_flash_attn_triton.py) to enjoy self-extend!
 - [03/20/2024]: We do many updates:
   - We added the [FlashAttention](./self_extend_patch/selfextend_flash_attn.py) implementation of self-extend, credits to [Qingquan Song](https://qingquansong.github.io/)! This implementation uses the original flash_attn from Tri Dao. 
   - We also tried to implement [FlashAttention](./self_extend_patch/triton_self_extend_flash_attn.py) for self-extend using Triton. But currently, **it only works for the prefill stage, and cannot work well for the decoding stage.** We are eagerly debugging this. Any suggestions are very welcome!  
@@ -12,7 +13,7 @@ Implementation of the proposed SelfExtend in [LLM Maybe LongLM: Self-Extend LLM 
   - We reorganized this repo and refactored several files. Now, all codes run with **transformers==4.38.2 and flash_attn==2.5.6**. Legacy codes/examples/README are packed into [legacy_patch_before_4_38](./legacy_patch_before_4_38/). We recommend using our docker: [hoytjin/selfextend_docker:v0.1](https://hub.docker.com/r/hoytjin/selfextend_docker/tags) to avoid any environmental issues. 
   - We updated the api, now you can simply call `SelfExtend.apply(loaded model, group size, window size)` to enjoy our self-extend! Check and run the provided [example](./example.py) for more details! 
   - We add a new passkey example with 32k context length and a more challenging 10-digit passkey. 
-  - Please join our [Discord](https://discord.gg/hGZSeH8h) for discussion 🔥🔥 
+  - Please join our [Discord](https://discord.gg/hGZSeH8h) for discussion! 🔥🔥 
 - [02/22/2024]: We added the [Implementation for Google New LLM Gemma](https://github.com/datamllab/LongLM/blob/master/gemma_self_extend_patch.py)!!! Welcome to try and test it out!!
 - [01/19/2024]: We've added the [implementation for Llama with transformers 4.36.2](https://github.com/datamllab/LongLM/blob/master/llama_self_extend_patch_4_36.py) and the [implementation for Microsoft's official phi-2 with transformers 4.37](https://github.com/datamllab/LongLM/blob/master/phi_self_extend_patch_4_37.py). Another good news: the flash attention version will come in days!💥
 - [01/11/2024]: We've tested the implementation for phi-2. [It works](./img/phi2_long_bench.jpg). You may find some results on this [Reddit post](https://www.reddit.com/r/LocalLLaMA/comments/194mmki/selfextend_works_for_phi2_now_looks_good/?utm_source=share&utm_medium=web2x&context=3) and details on this [X post](https://x.com/serendip410/status/1745668085711790553?s=20)
