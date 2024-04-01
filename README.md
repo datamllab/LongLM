@@ -1,11 +1,11 @@
 # LLM Maybe LongLM: Self-Extend LLM Context Window Without Tuning
 
 
-Implementation of the proposed SelfExtend in [LLM Maybe LongLM: Self-Extend LLM Context Window Without Tuning](https://arxiv.org/pdf/2401.01325.pdf). 
+Implementation of the proposed Self-Extend in [LLM Maybe LongLM: Self-Extend LLM Context Window Without Tuning](https://arxiv.org/pdf/2401.01325.pdf). 
 
 
 ## Updates:
-- [03/24/2024]: We added [Tirton](https://github.com/openai/triton) implemented flash self-extend. Now, you can use our [Triton implemented FlashSelfExtend](./self_extend_patch/selfextend_flash_attn_triton.py) to enjoy self-extend!
+- [03/24/2024]: We added [Triton](https://github.com/openai/triton) implemented flash self-extend. Now, you can use our [Triton implemented FlashSelfExtend](./self_extend_patch/selfextend_flash_attn_triton.py) to enjoy self-extend!
 - [03/20/2024]: We do many updates:
   - We added the [FlashAttention](./self_extend_patch/selfextend_flash_attn.py) implementation of self-extend, credits to [Qingquan Song](https://qingquansong.github.io/)! This implementation uses the original flash_attn from Tri Dao. 
   - We also tried to implement [FlashAttention](./self_extend_patch/triton_self_extend_flash_attn.py) for self-extend using Triton. But currently, **it only works for the prefill stage, and cannot work well for the decoding stage.** We are eagerly debugging this. Any suggestions are very welcome!  
