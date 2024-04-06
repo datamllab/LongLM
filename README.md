@@ -5,7 +5,7 @@ Implementation of the proposed Self-Extend in [LLM Maybe LongLM: Self-Extend LLM
 
 
 ## Updates:
-- [04/06/2024]: We added some hyperparameters searching results with SelfExtend, you may find
+- [04/06/2024]: We added some hyperparameters searching results with SelfExtend, you may check [here](#selfextend-on-needle-in-a-haystack)
 - [03/24/2024]: We added [Triton](https://github.com/openai/triton) implemented flash self-extend. Now, you can use our [Triton implemented FlashSelfExtend](./self_extend_patch/selfextend_flash_attn_triton.py) to enjoy self-extend!
 - [03/20/2024]: We do many updates:
   - We added the [FlashAttention](./self_extend_patch/selfextend_flash_attn.py) implementation of self-extend, credits to [Qingquan Song](https://qingquansong.github.io/)! This implementation uses the original flash_attn from Tri Dao. 
