@@ -5,6 +5,7 @@ Implementation of the proposed Self-Extend in [LLM Maybe LongLM: Self-Extend LLM
 
 
 ## Updates:
+- [04/06/2024]: We added some hyperparameters searching results with SelfExtend, you may find
 - [03/24/2024]: We added [Triton](https://github.com/openai/triton) implemented flash self-extend. Now, you can use our [Triton implemented FlashSelfExtend](./self_extend_patch/selfextend_flash_attn_triton.py) to enjoy self-extend!
 - [03/20/2024]: We do many updates:
   - We added the [FlashAttention](./self_extend_patch/selfextend_flash_attn.py) implementation of self-extend, credits to [Qingquan Song](https://qingquansong.github.io/)! This implementation uses the original flash_attn from Tri Dao. 
@@ -94,6 +95,25 @@ The following thoughts are based on our experience:
 
 - Maybe, for a sequence of length L, you can try the smallest group size first [calculated by: G * (L- w_n) + w_n] , and then test whether larger group can be better.
 
+#### SelfExtend on 'Needle in a Haystack'
+<p align="center">
+<img width="600" src="./img/2d.jpg">
+<p align="center">
+<img width="600" src="./img/3d.jpg">
+
+#### Emperical Rule:
+Denoting the pretraining context window as $L$, the target extension length as $N$, the neighbor window as $W$, and the group size as $G$, the empirical rule for selecting hyperparameters is to ensure that the following inequality holds: $(\frac{1}{2} \sim \frac{2}{3}) \times L > W + \frac{N-W}{G}$ This is empirical, we believe it's due the fact that: large relative positions are not well trained. Empirically, only a portion($\frac{1}{2} \sim \frac{2}{3}$) of positions are well trained and SelfExtend should only leverage these well-trained relative position for extension. This finding explains:
+Excessively small group sizes can degrade performance, as they provide precise position information but require SelfExtend to utilize less well-trained relative positions for extension.
+Excessively large neighbor window sizes can also degrade performance, as they provide more neighbor information but necessitate the use of less well-trained relative positions for extension.
+The experimental results indicate that SelfExtend is not overly sensitive to hyperparameter selection. Predefined, heuristic values for group size and neighbor window size are often sufficient to achieve satisfactory performance.
+
+**[TLDR]**
+ SelfExtend is not overly sensitive to hyperparameter selection. One could use a representative task to find proper hyperparameters. Or direcly follow our empirical inequality: $(\frac{1}{2} \sim \frac{2}{3}) \times L > W + \frac{N-W}{G}$
+
+
+
+------
+
 
 If you find our method useful, please kindly cite our paper.
 ```bibtex
@@ -108,9 +128,9 @@ If you find our method useful, please kindly cite our paper.
 ```
 
 
-## 5. Contributing
+## 4. Contributing
 We welcome contributions from the research community to improve the effeicency of SelfExtend. If you have any idea or would like to report a bug, please open an issue or submit a pull request.
 
-## 6. License
+## 5. License
 The code is released under the MIT License.
 
