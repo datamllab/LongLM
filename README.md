@@ -4,7 +4,8 @@
 Implementation of the proposed Self-Extend in [LLM Maybe LongLM: Self-Extend LLM Context Window Without Tuning](https://arxiv.org/pdf/2401.01325.pdf). 
 
 
-## Updates:
+## Updates
+- [05/01/2024]:🎉 SelfExtend has been accepted by ICML 2024! See you in Vienna!
 - [04/19/2024]:💡 We added the support for LLama-3 with transformers==4.40. To use it with transformers==4.40, you may change the file name of [Llama_4_40.py](./self_extend_patch/Llama_4_40.py) to ``Llama.py`` to replace the [existing patch file](./self_extend_patch/Llama.py). 
   - (Although, Llama-3's offical model hub recommends using transformers==4.40, we find that with transformers==4.38.2, Llama-3 can also work well)
 
