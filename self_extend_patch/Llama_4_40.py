@@ -128,7 +128,7 @@ def self_extend_forward(
 
 
     _re_group_size_2 = 0 if query_position.max() < group_size_2 else group_size_2 # in case that, the smallest q position, g2-g2//g1 exceed the max position
-    group_query_position = query_position // group_size_1 + _re_group_size_2 - _re_group_size_2 / group_size_1
+    group_query_position = query_position // group_size_1 + _re_group_size_2 - _re_group_size_2 // group_size_1
     group_key_position = key_position // group_size_1
 
     group_q_cos, group_q_sin = self.rotary_emb(value_states, group_query_position)#, seq_len=None)
